@@ -25,15 +25,37 @@ namespace RoutingApi.Controllers
                 }
             }
 
-            string solution = Solution(costArray, depot, timeLimit);
-            return Ok(solution);
+            //string solution = StringSolution(costArray, depot, timeLimit);
+            //return Ok(solution);
+            List<List<int>> routeSolution = RouteSolution(costArray, depot, timeLimit);
+            return Ok(routeSolution);
         }
 
-        private string Solution(long[,] costs, int depot, long timeLimit = 1000)
+        private List<List<int>> RouteSolution(long[,] costs, int depot, long timeLimit = 1000)
+        {
+            List < List<int> > res = new List <List <int>> ();
+
+            int maxVehicle = costs.GetLength(0);
+            for (int vehicle = 1; vehicle <= maxVehicle; vehicle++)
+            {
+                Console.WriteLine(vehicle);
+                DataModel tempData = new DataModel(costs, vehicle, depot);
+                Routing routing = VRP.GetRouting(tempData);
+                if (VRP.GetMaxRouteCost(routing) <= timeLimit)
+                {
+                    res = VRP.GetRoutingSolution(routing);
+                    return res;
+                }
+            }
+            return res;
+        }
+
+        private string StringSolution(long[,] costs, int depot, long timeLimit = 1000)
         {
             int maxVehicle = costs.GetLength(0);
             for (int vehicle = 1; vehicle <= maxVehicle; vehicle++)
             {
+                Console.WriteLine(vehicle);
                 DataModel tempData = new DataModel(costs, vehicle, depot);
                 Routing routing = VRP.GetRouting(tempData);
                 if (VRP.GetMaxRouteCost(routing) <= timeLimit)
@@ -44,26 +66,26 @@ namespace RoutingApi.Controllers
             return "No solution, time limit not available";
         }
 
-        private long[,] ConvertSecondMatrixToMinuteMatrix(long[,] costMatrix)
-        {
-            // Get the dimensions of the input matrix
-            int rows = costMatrix.GetLength(0);
-            int cols = costMatrix.GetLength(1);
+        //private long[,] ConvertSecondMatrixToMinuteMatrix(long[,] costMatrix)
+        //{
+        //    // Get the dimensions of the input matrix
+        //    int rows = costMatrix.GetLength(0);
+        //    int cols = costMatrix.GetLength(1);
 
-            // Create a new matrix to store the results
-            long[,] minuteMatrix = new long[rows, cols];
+        //    // Create a new matrix to store the results
+        //    long[,] minuteMatrix = new long[rows, cols];
 
-            // Convert each element from seconds to minutes
-            for (int i = 0; i < rows; i++)
-            {
-                for (int j = 0; j < cols; j++)
-                {
-                    minuteMatrix[i, j] = costMatrix[i, j] / 60;
-                }
-            }
+        //    // Convert each element from seconds to minutes
+        //    for (int i = 0; i < rows; i++)
+        //    {
+        //        for (int j = 0; j < cols; j++)
+        //        {
+        //            minuteMatrix[i, j] = costMatrix[i, j] / 60;
+        //        }
+        //    }
 
-            return minuteMatrix;
-        }
+        //    return minuteMatrix;
+        //}
 
     }
 }

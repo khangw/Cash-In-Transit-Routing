@@ -9,6 +9,38 @@ namespace RoutingApi.Model
 {
     public class VRP
     {
+
+        public static List<List<int>> GetRoutingSolution(Routing routing)
+        {
+            List<List<int>> res = new List<List<int>>();
+            if (routing.solution == null)
+            {
+                return res;
+            }
+            for (int i = 0; i < routing.data.VehicleNumber; ++i)
+            {
+                List<int> routeIndex = new List<int>();
+
+                long routeCost = 0;
+                var index = routing.model.Start(i);
+                while (routing.model.IsEnd(index) == false)
+                {
+                    routeIndex.Add(routing.manager.IndexToNode((int)index));
+                    
+                    var previousIndex = index;
+                    index = routing.solution.Value(routing.model.NextVar(index));
+                    routeCost += routing.model.GetArcCostForVehicle(previousIndex, index, 0);
+                }
+
+                routeIndex.Add(routing.manager.IndexToNode((int)index));
+
+                if (routeIndex.Count > 2)
+                    res.Add(routeIndex);
+
+            }
+            return res;
+        }
+
         public static string GetSolutionString(Routing routing)
         {
             if (routing.solution == null)
@@ -17,7 +49,7 @@ namespace RoutingApi.Model
             }
 
             StringBuilder result = new StringBuilder();
-            result.AppendLine($"Objective {routing.solution.ObjectiveValue()}:");
+            //result.AppendLine($"Objective {routing.solution.ObjectiveValue()}:");
 
             long maxRouteCost = 0;
             for (int i = 0; i < routing.data.VehicleNumber; ++i)

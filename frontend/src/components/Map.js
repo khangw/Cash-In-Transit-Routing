@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import MapGL, { Marker } from '@goongmaps/goong-map-react';
+import MapGL, {Marker, Source, Layer} from '@goongmaps/goong-map-react';
 import Pin from './Pin';
 import '../App.css';
 import Papa from 'papaparse';
+import axios from "axios";
 
 const GOONG_MAPTILES_KEY = 'dWK0TYbdxjUuJdllO5vrml2HUNbwjZhgi1ZRZHYr';
 const GOONG_MAP_API_KEY = 'vdrLE4kfZXd3dVpB8kIuqr5ZJyoHy4We5IQs4LXP';
@@ -16,6 +17,8 @@ function Map() {
     zoom: 13,
   });
 
+  const [autoDrawRoute, setAutoDrawRoute] = useState(false);
+  const [route, setRoute] = useState(null);
   const [pins, setPins] = useState([]);
   const [solution, setSolution] = useState('');
 
@@ -60,6 +63,10 @@ function Map() {
     }
   };
 
+  const handleAutoDrawRoute = useCallback(() => {
+    setAutoDrawRoute(true); // Set autoDrawRoute to true when the button is clicked
+  }, []);
+
   const calculateTravelTimes = useCallback(() => {
     if (pins.length < 2) return;
 
@@ -99,6 +106,127 @@ function Map() {
     calculateTravelTimes();
   }, [pins, calculateTravelTimes]);
 
+  const parseSolution = (solutionString) => {
+    try {
+      // Loại bỏ các khoảng trắng và ký tự không cần thiết khác từ chuỗi
+      const cleanString = solutionString.replace(/\s/g, '');
+  
+      // Loại bỏ dấu ngoặc vuông từ đầu và cuối chuỗi
+      const trimmedString = cleanString.slice(1, -1);
+  
+      // Phân tách các danh sách con bằng dấu phẩy
+      const listOfLists = trimmedString.split('],[');
+  
+      // Chuyển đổi mỗi danh sách con thành một mảng các số nguyên
+      const solution = listOfLists.map(list => list.split(',').map(Number));
+  
+      return solution;
+    } catch (error) {
+      console.error('Error parsing solution:', error);
+      return null; // Trả về null nếu có lỗi xảy ra trong quá trình phân tích
+    }
+  };
+
+  useEffect(() => {
+    console.log(pins);
+    //var pins = parseSolution(solution);
+    //console.log(solutionList);
+    if (autoDrawRoute && pins.length > 1) {
+      const fetchDirections = async () => {
+        let combinedRoute = [];
+        for (let i = 0; i < pins.length - 1; i++) {
+          const origin = pins[i];
+          const destination = pins[i + 1];
+  
+          const url = `https://rsapi.goong.io/Direction?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&vehicle=car&api_key=${GOONG_MAP_API_KEY}`;
+  
+          try {
+            const response = await axios.get(url);
+            if (response.data.routes.length > 0) {
+              const routeData = response.data.routes[0].overview_polyline.points;
+              const decodedRoute = decodePolyline(routeData);
+              combinedRoute = combinedRoute.concat(decodedRoute);
+            }
+          } catch (error) {
+            console.error('Error fetching directions:', error);
+          }
+        }
+        setRoute(encodePolyline(combinedRoute)); // Set the combined route data
+      };
+  
+      fetchDirections();
+      setAutoDrawRoute(false); // Reset autoDrawRoute after drawing route
+    }
+  }, [autoDrawRoute, pins]);
+  
+  // Encode the combined polyline
+  const encodePolyline = (points) => {
+    let encoded = '';
+    let prevLat = 0;
+    let prevLng = 0;
+  
+    for (let i = 0; i < points.length; ++i) {
+      const lat = points[i].latitude;
+      const lng = points[i].longitude;
+      const encodedLat = encodeCoordinate(lat - prevLat);
+      const encodedLng = encodeCoordinate(lng - prevLng);
+  
+      prevLat = lat;
+      prevLng = lng;
+  
+      encoded += encodedLat + encodedLng;
+    }
+  
+    return encoded;
+  };
+  
+  const encodeCoordinate = (coordinate) => {
+    coordinate = Math.round(coordinate * 1e5);
+    coordinate <<= 1;
+    if (coordinate < 0) {
+      coordinate = ~coordinate;
+    }
+    let output = '';
+    while (coordinate >= 0x20) {
+      output += String.fromCharCode((0x20 | (coordinate & 0x1f)) + 63);
+      coordinate >>= 5;
+    }
+    output += String.fromCharCode(coordinate + 63);
+    return output;
+  };
+  
+  const decodePolyline = (polyline) => {
+    let points = [];
+    let index = 0, len = polyline.length;
+    let lat = 0, lng = 0;
+
+    while (index < len) {
+      let b, shift = 0, result = 0;
+      do {
+        b = polyline.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      let dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+      do {
+        b = polyline.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      let dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+
+      points.push({ latitude: (lat / 1E5), longitude: (lng / 1E5) });
+    }
+    return points;
+  };
+
+  const routeCoordinates = route ? decodePolyline(route).map(point => [point.longitude, point.latitude]) : [];
+
   return (
     <React.Fragment>
       <div style={{ display: 'flex', flexDirection: 'row', height: '100vh' }}>
@@ -120,6 +248,30 @@ function Map() {
                 <Pin size={20} />
               </Marker>
             ))}
+            {routeCoordinates.length > 0 && (
+              <Source id="route" type="geojson" data={{
+                type: 'Feature',
+                geometry: {
+                  type: 'LineString',
+                  coordinates: routeCoordinates
+                }
+              }}>
+                <Layer
+                  id="route"
+                  type="line"
+                  source="route"
+                  layout={{
+                    'line-join': 'round',
+                    'line-cap': 'round'
+                  }}
+                  paint={{
+                    'line-color': '#888',
+                    'line-width': 8
+                  }}
+                />
+              </Source>
+            )}
+
           </MapGL>
         </div>
 
@@ -141,6 +293,7 @@ function Map() {
             <div>
               <h3>Solution:</h3>
               <pre>{solution}</pre>
+              <button onClick={handleAutoDrawRoute}>Draw Routes</button>
             </div>
           )}
         </div>

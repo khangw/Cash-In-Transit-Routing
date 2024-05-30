@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Study\\Subject\\2023.2\\DATN\\GoongMapIntegration-main\\RoutingApi\\RoutingApi.csproj": {}
+    "D:\\Study\\Subject\\2023.2\\DATN\\Cash-In-Transit\\backend\\RoutingApi.csproj": {}
   },
   "projects": {
-    "D:\\Study\\Subject\\2023.2\\DATN\\GoongMapIntegration-main\\RoutingApi\\RoutingApi.csproj": {
+    "D:\\Study\\Subject\\2023.2\\DATN\\Cash-In-Transit\\backend\\RoutingApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Study\\Subject\\2023.2\\DATN\\GoongMapIntegration-main\\RoutingApi\\RoutingApi.csproj",
+        "projectUniqueName": "D:\\Study\\Subject\\2023.2\\DATN\\Cash-In-Transit\\backend\\RoutingApi.csproj",
         "projectName": "RoutingApi",
-        "projectPath": "D:\\Study\\Subject\\2023.2\\DATN\\GoongMapIntegration-main\\RoutingApi\\RoutingApi.csproj",
+        "projectPath": "D:\\Study\\Subject\\2023.2\\DATN\\Cash-In-Transit\\backend\\RoutingApi.csproj",
         "packagesPath": "C:\\Users\\khang\\.nuget\\packages\\",
-        "outputPath": "D:\\Study\\Subject\\2023.2\\DATN\\GoongMapIntegration-main\\RoutingApi\\obj\\",
+        "outputPath": "D:\\Study\\Subject\\2023.2\\DATN\\Cash-In-Transit\\backend\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
