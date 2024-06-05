@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import MapGL, {Marker, Source, Layer} from '@goongmaps/goong-map-react';
+import MapGL, { Marker, Source, Layer } from '@goongmaps/goong-map-react';
 import Pin from './Pin';
 import '../App.css';
 import Papa from 'papaparse';
@@ -7,6 +7,8 @@ import axios from "axios";
 
 const GOONG_MAPTILES_KEY = 'dWK0TYbdxjUuJdllO5vrml2HUNbwjZhgi1ZRZHYr';
 const GOONG_MAP_API_KEY = 'vdrLE4kfZXd3dVpB8kIuqr5ZJyoHy4We5IQs4LXP';
+
+const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
 
 function Map() {
   const [viewport, setViewport] = useState({
@@ -18,9 +20,9 @@ function Map() {
   });
 
   const [autoDrawRoute, setAutoDrawRoute] = useState(false);
-  const [route, setRoute] = useState(null);
+  const [routes, setRoutes] = useState([]);
   const [pins, setPins] = useState([]);
-  const [solution, setSolution] = useState('');
+  const [solution, setSolution] = useState(null);
 
   const handleMapClick = useCallback(
     (event) => {
@@ -30,6 +32,7 @@ function Map() {
           id: pins.length + 1,
           longitude: lngLat[0],
           latitude: lngLat[1],
+          name: '',
         };
         setPins([...pins, newPin]);
       }
@@ -56,6 +59,7 @@ function Map() {
             id: pins.length + index + 1,
             latitude: parseFloat(row[0]),
             longitude: parseFloat(row[1]),
+            name: '',
           }));
           setPins([...pins, ...newPins]);
         },
@@ -63,8 +67,13 @@ function Map() {
     }
   };
 
+  const handleNameChange = (id, name) => {
+    const updatedPins = pins.map(pin => (pin.id === id ? { ...pin, name } : pin));
+    setPins(updatedPins);
+  };
+
   const handleAutoDrawRoute = useCallback(() => {
-    setAutoDrawRoute(true); // Set autoDrawRoute to true when the button is clicked
+    setAutoDrawRoute(true);
   }, []);
 
   const calculateTravelTimes = useCallback(() => {
@@ -84,8 +93,7 @@ function Map() {
         const travelTimes = data.rows.map(row => row.elements.map(element => element.duration.value));
         console.table(travelTimes);
 
-        // Send travelTimes to backend for solution
-        fetch('https://localhost:7140/routing', {  // Ensure this matches the URL in your launchSettings.json
+        fetch('https://localhost:7140/routing', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -94,7 +102,6 @@ function Map() {
         })
           .then(response => response.text())
           .then(solution => {
-            console.log('Solution:', solution);
             setSolution(solution);
           })
           .catch(error => console.error('Error fetching solution:', error));
@@ -106,31 +113,33 @@ function Map() {
     calculateTravelTimes();
   }, [pins, calculateTravelTimes]);
 
-  const parseSolution = (solutionString) => {
-    try {
-      // Loại bỏ các khoảng trắng và ký tự không cần thiết khác từ chuỗi
-      const cleanString = solutionString.replace(/\s/g, '');
-  
-      // Loại bỏ dấu ngoặc vuông từ đầu và cuối chuỗi
-      const trimmedString = cleanString.slice(1, -1);
-  
-      // Phân tách các danh sách con bằng dấu phẩy
-      const listOfLists = trimmedString.split('],[');
-  
-      // Chuyển đổi mỗi danh sách con thành một mảng các số nguyên
-      const solution = listOfLists.map(list => list.split(',').map(Number));
-  
-      return solution;
-    } catch (error) {
-      console.error('Error parsing solution:', error);
-      return null; // Trả về null nếu có lỗi xảy ra trong quá trình phân tích
-    }
-  };
+  function GetRouteArrayByIndex(index, solution) {
+    const subArrayStrings = solution.slice(1, -1).split('],[');
+    const mainArray = subArrayStrings.map(subArrayString => {
+      return subArrayString.replace('[', '').replace(']', '').split(',').map(Number);
+    });
 
-  useEffect(() => {
-    console.log(pins);
-    //var pins = parseSolution(solution);
-    //console.log(solutionList);
+    if (index >= 0 && index < mainArray.length) {
+      return GetPinsArray(mainArray[index]);
+    } else {
+      return null;
+    }
+  }
+
+  function GetPinsArray(array) {
+    var objArr = [];
+    for (let i = 0; i < array.length; i++){
+      objArr[i] = pins[array[i]];
+    }
+    return objArr;
+  }
+
+  function CountRoute(solution) {
+    const subArrayStrings = solution.slice(1, -1).split('],[');
+    return subArrayStrings.length;
+  }
+
+  const direct = (pins, color) => {
     if (autoDrawRoute && pins.length > 1) {
       const fetchDirections = async () => {
         let combinedRoute = [];
@@ -151,15 +160,27 @@ function Map() {
             console.error('Error fetching directions:', error);
           }
         }
-        setRoute(encodePolyline(combinedRoute)); // Set the combined route data
+        setRoutes(prevRoutes => [...prevRoutes, { route: encodePolyline(combinedRoute), color }]);
       };
   
       fetchDirections();
-      setAutoDrawRoute(false); // Reset autoDrawRoute after drawing route
+      setAutoDrawRoute(false);
     }
-  }, [autoDrawRoute, pins]);
+  }
   
-  // Encode the combined polyline
+  useEffect(() => {
+    if (solution != null)
+    {
+      var vehicles = CountRoute(solution);
+      for (let i = 0; i < vehicles; i++)
+      {
+        console.log(GetRouteArrayByIndex(i, solution));
+        direct(GetRouteArrayByIndex(i, solution), colors[i % colors.length]);
+      }
+    }
+    
+  }, [autoDrawRoute, pins, solution]);
+
   const encodePolyline = (points) => {
     let encoded = '';
     let prevLat = 0;
@@ -225,8 +246,6 @@ function Map() {
     return points;
   };
 
-  const routeCoordinates = route ? decodePolyline(route).map(point => [point.longitude, point.latitude]) : [];
-
   return (
     <React.Fragment>
       <div style={{ display: 'flex', flexDirection: 'row', height: '100vh' }}>
@@ -245,46 +264,59 @@ function Map() {
                 offsetTop={-20}
                 offsetLeft={-10}
               >
-                <Pin size={20} />
+                <Pin size={20} name={pin.name} />
               </Marker>
             ))}
-            {routeCoordinates.length > 0 && (
-              <Source id="route" type="geojson" data={{
-                type: 'Feature',
-                geometry: {
-                  type: 'LineString',
-                  coordinates: routeCoordinates
-                }
-              }}>
-                <Layer
-                  id="route"
-                  type="line"
-                  source="route"
-                  layout={{
-                    'line-join': 'round',
-                    'line-cap': 'round'
-                  }}
-                  paint={{
-                    'line-color': '#888',
-                    'line-width': 8
-                  }}
-                />
-              </Source>
-            )}
-
+            {routes.map((route, index) => {
+              const routeCoordinates = route.route ? decodePolyline(route.route).map(point => [point.longitude, point.latitude]) : [];
+              return (
+                <Source key={index} id={`route-${index}`} type="geojson" data={{
+                  type: 'Feature',
+                  geometry: {
+                    type: 'LineString',
+                    coordinates: routeCoordinates
+                  }
+                }}>
+                  <Layer
+                    id={`route-layer-${index}`}
+                    type="line"
+                    source={`route-${index}`}
+                    layout={{
+                      'line-join': 'round',
+                      'line-cap': 'round'
+                    }}
+                    paint={{
+                      'line-color': route.color,
+                      'line-width': 8
+                    }}
+                  />
+                </Source>
+              );
+            })}
           </MapGL>
         </div>
 
         <div className="PinList" style={{ width: '30%' }}>
           <h2 style={{ textAlign: 'center' }}>List Position</h2>
           <input type="file" accept=".csv" onChange={handleFileUpload} />
-          {pins.map((pin) => (
+          {pins.map((pin, index) => (
             <div key={pin.id} className="PinListItem">
+              <div>
+                <strong>Order:</strong> {index + 1}
+              </div>
               <div>
                 <strong>Latitude:</strong> {pin.latitude}
               </div>
               <div>
                 <strong>Longitude:</strong> {pin.longitude}
+              </div>
+              <div>
+                <strong>Name:</strong>
+                <input
+                  type="text"
+                  value={pin.name}
+                  onChange={(e) => handleNameChange(pin.id, e.target.value)}
+                />
               </div>
               <button onClick={() => handleDeletePin(pin.id)}>Delete</button>
             </div>

@@ -12,7 +12,7 @@ namespace RoutingApi.Controllers
         public IActionResult Solve([FromBody] List<List<long>> costs)
         {
             int depot = 0; // Assuming depot is the first point
-            long timeLimit = 1000;
+            long timeLimit = 130;
 
             // Convert List<List<long>> to long[,]
             int size = costs.Count;
@@ -28,6 +28,7 @@ namespace RoutingApi.Controllers
             //string solution = StringSolution(costArray, depot, timeLimit);
             //return Ok(solution);
             List<List<int>> routeSolution = RouteSolution(costArray, depot, timeLimit);
+            Console.WriteLine(routeSolution);
             return Ok(routeSolution);
         }
 
@@ -38,7 +39,7 @@ namespace RoutingApi.Controllers
             int maxVehicle = costs.GetLength(0);
             for (int vehicle = 1; vehicle <= maxVehicle; vehicle++)
             {
-                Console.WriteLine(vehicle);
+                //Console.WriteLine(vehicle);
                 DataModel tempData = new DataModel(costs, vehicle, depot);
                 Routing routing = VRP.GetRouting(tempData);
                 if (VRP.GetMaxRouteCost(routing) <= timeLimit)
