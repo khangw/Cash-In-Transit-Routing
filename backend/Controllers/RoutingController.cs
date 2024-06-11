@@ -12,7 +12,7 @@ namespace RoutingApi.Controllers
         public IActionResult Solve([FromBody] List<List<long>> costs)
         {
             int depot = 0; // Assuming depot is the first point
-            long timeLimit = 130;
+            long timeLimit = 140;
 
             // Convert List<List<long>> to long[,]
             int size = costs.Count;

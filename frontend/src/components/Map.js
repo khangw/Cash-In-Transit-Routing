@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import MapGL, { Marker, Source, Layer } from '@goongmaps/goong-map-react';
 import Pin from './Pin';
-import '../App.css';
+import '../map.css';
 import Papa from 'papaparse';
 import axios from "axios";
 
@@ -12,7 +12,7 @@ const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'
 
 function Map() {
   const [viewport, setViewport] = useState({
-    width: 1000,
+    width: 1460,
     height: 1000,
     latitude: 21.00758683685577,
     longitude: 105.84262213793022,
@@ -128,7 +128,7 @@ function Map() {
 
   function GetPinsArray(array) {
     var objArr = [];
-    for (let i = 0; i < array.length; i++){
+    for (let i = 0; i < array.length; i++) {
       objArr[i] = pins[array[i]];
     }
     return objArr;
@@ -146,9 +146,9 @@ function Map() {
         for (let i = 0; i < pins.length - 1; i++) {
           const origin = pins[i];
           const destination = pins[i + 1];
-  
+
           const url = `https://rsapi.goong.io/Direction?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&vehicle=car&api_key=${GOONG_MAP_API_KEY}`;
-  
+
           try {
             const response = await axios.get(url);
             if (response.data.routes.length > 0) {
@@ -162,45 +162,43 @@ function Map() {
         }
         setRoutes(prevRoutes => [...prevRoutes, { route: encodePolyline(combinedRoute), color }]);
       };
-  
+
       fetchDirections();
       setAutoDrawRoute(false);
     }
   }
-  
+
   useEffect(() => {
-    if (solution != null)
-    {
+    if (solution != null) {
       var vehicles = CountRoute(solution);
-      for (let i = 0; i < vehicles; i++)
-      {
+      for (let i = 0; i < vehicles; i++) {
         console.log(GetRouteArrayByIndex(i, solution));
         direct(GetRouteArrayByIndex(i, solution), colors[i % colors.length]);
       }
     }
-    
+
   }, [autoDrawRoute, pins, solution]);
 
   const encodePolyline = (points) => {
     let encoded = '';
     let prevLat = 0;
     let prevLng = 0;
-  
+
     for (let i = 0; i < points.length; ++i) {
       const lat = points[i].latitude;
       const lng = points[i].longitude;
       const encodedLat = encodeCoordinate(lat - prevLat);
       const encodedLng = encodeCoordinate(lng - prevLng);
-  
+
       prevLat = lat;
       prevLng = lng;
-  
+
       encoded += encodedLat + encodedLng;
     }
-  
+
     return encoded;
   };
-  
+
   const encodeCoordinate = (coordinate) => {
     coordinate = Math.round(coordinate * 1e5);
     coordinate <<= 1;
@@ -215,7 +213,7 @@ function Map() {
     output += String.fromCharCode(coordinate + 63);
     return output;
   };
-  
+
   const decodePolyline = (polyline) => {
     let points = [];
     let index = 0, len = polyline.length;
@@ -248,9 +246,10 @@ function Map() {
 
   return (
     <React.Fragment>
-      <div style={{ display: 'flex', flexDirection: 'row', height: '100vh' }}>
-        <div style={{ width: '70%', position: 'relative' }}>
+      <div className='wrapper'>
+        <div className='map'>
           <MapGL
+            className="map-container"
             {...viewport}
             onViewportChange={(nextViewport) => setViewport(nextViewport)}
             goongApiAccessToken={GOONG_MAPTILES_KEY}
@@ -296,39 +295,42 @@ function Map() {
           </MapGL>
         </div>
 
-        <div className="PinList" style={{ width: '30%' }}>
+        <div className='wrapper-pin-list'>
           <h2 style={{ textAlign: 'center' }}>List Position</h2>
-          <input type="file" accept=".csv" onChange={handleFileUpload} />
-          {pins.map((pin, index) => (
-            <div key={pin.id} className="PinListItem">
-              <div>
-                <strong>Order:</strong> {index + 1}
+          <div className="pin-list">
+            <input type="file" accept=".csv" onChange={handleFileUpload} />
+            {pins.map((pin, index) => (
+              <div key={pin.id} className="pin-list-item">
+                <div>
+                  <strong>Order:</strong> {index + 1}
+                </div>
+                <div>
+                  <strong>Latitude:</strong> {pin.latitude}
+                </div>
+                <div>
+                  <strong>Longitude:</strong> {pin.longitude}
+                </div>
+                <div>
+                  <strong>Name:</strong>
+                  <input
+                    type="text"
+                    value={pin.name}
+                    onChange={(e) => handleNameChange(pin.id, e.target.value)}
+                  />
+                </div>
+                <button onClick={() => handleDeletePin(pin.id)}>Delete</button>
               </div>
+            ))}
+            {solution && (
               <div>
-                <strong>Latitude:</strong> {pin.latitude}
+                <h3>Solution:</h3>
+                <pre>{solution}</pre>
+                <button onClick={handleAutoDrawRoute}>Draw Routes</button>
               </div>
-              <div>
-                <strong>Longitude:</strong> {pin.longitude}
-              </div>
-              <div>
-                <strong>Name:</strong>
-                <input
-                  type="text"
-                  value={pin.name}
-                  onChange={(e) => handleNameChange(pin.id, e.target.value)}
-                />
-              </div>
-              <button onClick={() => handleDeletePin(pin.id)}>Delete</button>
-            </div>
-          ))}
-          {solution && (
-            <div>
-              <h3>Solution:</h3>
-              <pre>{solution}</pre>
-              <button onClick={handleAutoDrawRoute}>Draw Routes</button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
+
       </div>
     </React.Fragment>
   );

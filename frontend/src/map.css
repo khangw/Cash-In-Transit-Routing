@@ -1,0 +1,45 @@
+
+.wrapper .map{
+    max-width: 100%;
+    display: block;
+}
+
+/* .wrapper .map :nth-child(1) {
+    width: 1460px !important
+  }   */
+
+.wrapper .wrapper-pin-list{
+    display: block;
+    position: absolute;
+    width: 300px;
+    height: auto;
+    margin-left: 30px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: whitesmoke;
+    border-radius: 5px;
+}
+
+.pin-list ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  
+  .pin-list .pin-list-item {
+    padding: 20px;
+    border-bottom: 1px solid #ccc;
+  }
+  
+  .pin-list .pin-list-item:last-child {
+    border-bottom: none; /* Loại bỏ đường viền dưới cho phần tử cuối cùng */
+  }
+  
+  .pin-list .pin-list-item button {
+    float: left; /* Đưa nút delete vào góc phải */
+  }
+  
+  .pin-list .pin-list-item div {
+    text-align: left;
+  }

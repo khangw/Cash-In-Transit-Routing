@@ -1,10 +1,10 @@
 // App.js
-import './App.css';
+//import './App.css';
 import Map from './components/Map';
 
 function App() {
   return (
-    <div className="App">
+    <div >
       <Map/>
     </div>
   );
