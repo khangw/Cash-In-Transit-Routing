@@ -7,31 +7,38 @@ import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import Pin from './Pin';
 import '../map.css';
+import '../Toast.css';
 import Papa from 'papaparse';
 import axios from "axios";
+import directImage from '../Direct.png';
 
 const GOONG_MAPTILES_KEY = 'dWK0TYbdxjUuJdllO5vrml2HUNbwjZhgi1ZRZHYr';
 const GOONG_MAP_API_KEY = 'vdrLE4kfZXd3dVpB8kIuqr5ZJyoHy4We5IQs4LXP';
 
-const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
+const colors = ['#C2C2C2', '#00B2BF', '#00A06B', '#F9F400', '#EB7153', '#79378B'];
 
 function Map() {
   const [viewport, setViewport] = useState({
     width: 1460,
     height: 1000,
-    latitude: 21.00758683685577,
-    longitude: 105.84262213793022,
-    zoom: 13,
+    latitude: 21.051352389822295,
+    longitude: 105.82179406594501,
+    zoom: 12.25,
   });
 
-  const [autoDrawRoute, setAutoDrawRoute] = useState(false);
   const [routes, setRoutes] = useState([]);
   const [pins, setPins] = useState([]);
-  const [solution, setSolution] = useState(null);
-  const [expand, setExpand] = useState(true) // state đóng mở list
-  const [homeStates, setHomeStates] = useState({}); // state chọn điểm quay về
+  const [solution, setSolution] = useState([[]]);
+  const [expand, setExpand] = useState(true)
+  const [homeStates, setHomeStates] = useState({});
+  const [costs, setCosts] = useState([]);
+  const [timeLimit, setTimeLimit] = useState('0');
+  const [depot, SetDepot] = useState('0');
+  const [isDraw, SetDraw] = useState(false);
 
   const handleHomeClick = (pinId) => {
+    SetDraw(false);
+    SetDepot(pinId - 1);
     setHomeStates(prevStates => ({
       ...Object.keys(prevStates).reduce((acc, key) => {
         acc[key] = false;
@@ -44,6 +51,7 @@ function Map() {
 
   const handleMapClick = useCallback(
     (event) => {
+      SetDraw(false);
       const { lngLat, srcEvent } = event;
       if (srcEvent.button === 0) {
         const newPin = {
@@ -60,46 +68,62 @@ function Map() {
 
   const handleDeletePin = useCallback(
     (pinId) => {
+      SetDraw(false);
       const updatedPins = pins.filter((pin) => pin.id !== pinId);
-      setPins(updatedPins);
+  
+      // Update IDs of remaining pins to ensure continuity
+      const updatedPinsWithIds = updatedPins.map((pin, index) => ({
+        ...pin,
+        id: index + 1,
+      }));
+  
+      setPins(updatedPinsWithIds);
     },
     [pins]
   );
-
+  
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
       Papa.parse(file, {
         header: false,
         skipEmptyLines: true,
+        encoding: "utf8",
         complete: (results) => {
+          clearPins();
           const newPins = results.data.map((row, index) => ({
-            id: pins.length + index + 1,
+            id: index + 1,
             latitude: parseFloat(row[0]),
             longitude: parseFloat(row[1]),
-            name: '',
+            name: row[2] ? row[2].trim() : '',
           }));
-          setPins([...pins, ...newPins]);
+          setPins(newPins);
         },
       });
     }
   };
-
+  
+  const clearPins = () => {
+    setPins([]);
+  };
+  
+  const handleNameInputChange = (event, pinId) => {
+    const newName = event.target.value;
+    handleNameChange(pinId, newName);
+  };
+  
   const handleNameChange = (id, name) => {
     const updatedPins = pins.map(pin => (pin.id === id ? { ...pin, name } : pin));
     setPins(updatedPins);
   };
-
-  const handleAutoDrawRoute = useCallback(() => {
-    setAutoDrawRoute(true);
-  }, []);
-
-  const calculateTravelTimes = useCallback(() => {
+  
+  
+  const fetchTravelTimes = useCallback(() => {
     if (pins.length < 2) return;
-
+  
     const coordinates = pins.map(pin => `${pin.latitude},${pin.longitude}`).join('|');
     const url = `https://rsapi.goong.io/DistanceMatrix?origins=${coordinates}&destinations=${coordinates}&vehicle=car&api_key=${GOONG_MAP_API_KEY}`;
-
+  
     fetch(url)
       .then(response => {
         if (!response.ok) {
@@ -109,40 +133,35 @@ function Map() {
       })
       .then(data => {
         const travelTimes = data.rows.map(row => row.elements.map(element => element.duration.value));
-        console.table(travelTimes);
-
-        fetch('https://localhost:7140/routing', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(travelTimes),
-        })
-          .then(response => response.text())
-          .then(solution => {
-            setSolution(solution);
-          })
-          .catch(error => console.error('Error fetching solution:', error));
+        
+        const modifiedCosts = travelTimes.map((row, i) => (
+          row.map((cost, j) => (i === j ? 0: cost))
+        ));
+  
+        setCosts(modifiedCosts);
       })
       .catch(error => console.error('Error fetching travel times:', error));
   }, [pins]);
+  
 
-  useEffect(() => {
-    calculateTravelTimes();
-  }, [pins, calculateTravelTimes]);
+const sendDataToBackend = useCallback(() => {
+  if (costs == null && timeLimit == 0) return;
+    axios.post('https://localhost:7140/routing', {
+        Costs: costs,
+        TimeLimit: timeLimit,
+        Depot: depot
+    })
+    .then(response => {
+        setSolution(response.data);
+        SetDraw(true);
+    })
+    .catch(error => console.error('Error fetching solution:', error));
+}, [timeLimit, depot]);
 
-  function GetRouteArrayByIndex(index, solution) {
-    const subArrayStrings = solution.slice(1, -1).split('],[');
-    const mainArray = subArrayStrings.map(subArrayString => {
-      return subArrayString.replace('[', '').replace(']', '').split(',').map(Number);
-    });
 
-    if (index >= 0 && index < mainArray.length) {
-      return GetPinsArray(mainArray[index]);
-    } else {
-      return null;
-    }
-  }
+useEffect(() => {
+  fetchTravelTimes();
+}, [pins, timeLimit, depot]);
 
   function GetPinsArray(array) {
     var objArr = [];
@@ -152,13 +171,12 @@ function Map() {
     return objArr;
   }
 
-  function CountRoute(solution) {
-    const subArrayStrings = solution.slice(1, -1).split('],[');
-    return subArrayStrings.length;
-  }
+  const clearRoutes = () => {
+    setRoutes([]);
+  };
 
   const direct = (pins, color) => {
-    if (autoDrawRoute && pins.length > 1) {
+    if (pins.length > 1) {
       const fetchDirections = async () => {
         let combinedRoute = [];
         for (let i = 0; i < pins.length - 1; i++) {
@@ -182,21 +200,20 @@ function Map() {
       };
 
       fetchDirections();
-      setAutoDrawRoute(false);
     }
   }
 
   useEffect(() => {
-    if (solution != null) {
-      var vehicles = CountRoute(solution);
+    if (solution != null && timeLimit != 0 && isDraw) {
+      clearRoutes(); // Clear old routes
+      var vehicles = solution.length;
       for (let i = 0; i < vehicles; i++) {
-        console.log(GetRouteArrayByIndex(i, solution));
-        direct(GetRouteArrayByIndex(i, solution), colors[i % colors.length]);
+        direct(GetPinsArray(solution[i]), colors[i % colors.length]);
       }
+      
+      SetDraw(false);
     }
-
-  }, [autoDrawRoute, pins, solution]);
-
+  }, [pins, solution]);
   const encodePolyline = (points) => {
     let encoded = '';
     let prevLat = 0;
@@ -261,6 +278,9 @@ function Map() {
     }
     return points;
   };
+  const handleInputChange = (event) => {
+    setTimeLimit(event.target.value);
+  };
 
   return (
     <React.Fragment>
@@ -281,7 +301,9 @@ function Map() {
                 offsetTop={-20}
                 offsetLeft={-10}
               >
-                <Pin size={20} name={pin.name} />
+                  <Pin
+                    name={pin.name}
+                  />
               </Marker>
             ))}
             {routes.map((route, index) => {
@@ -304,7 +326,7 @@ function Map() {
                     }}
                     paint={{
                       'line-color': route.color,
-                      'line-width': 8
+                      'line-width': 5,
                     }}
                   />
                 </Source>
@@ -346,38 +368,44 @@ function Map() {
                 <div className="pin-item-left">
                   <div className="top-pin-left">
                     <span>Phòng giao dịch số {index + 1}</span>
-                    <input type="text" placeholder='Tên phòng giao dịch' />
+                    <input
+                      type="text"
+                      placeholder='Tên phòng giao dịch'
+                      value={pin.name}  // Ensure input value is set to pin.name
+                      onChange={(event) => handleNameInputChange(event, pin.id)}
+                    />
                   </div>
                   <div className="bottom-pin-left">
-                    <DeleteForeverOutlinedIcon  onClick={() => {handleDeletePin(pin.id)}} className='remove'/>
+                    <DeleteForeverOutlinedIcon onClick={() => { handleDeletePin(pin.id) }} className='remove' />
                     <HomeOutlinedIcon
-                      onClick={() => handleHomeClick(pin.id)} 
+                      onClick={() => handleHomeClick(pin.id)}
                       className={`home ${homeStates[pin.id] ? 'active' : ''}`}
                     />
                   </div>
                 </div>
 
                 <div className="pin-item-right">
-                  <div><LocationOnOutlinedIcon className='icon'/> <span>{pin.latitude}</span></div>
-                  <div><LocationOnOutlinedIcon className='icon'/> <span>{pin.longitude}</span></div>
+                  <div><LocationOnOutlinedIcon className='icon' /> <span>{pin.latitude}</span></div>
+                  <div><LocationOnOutlinedIcon className='icon' /> <span>{pin.longitude}</span></div>
                 </div>
-                
               </div>
             ))}
-            {solution && (
-              <div>
-                <h3>Solution:</h3>
-                <pre>{solution}</pre>
-                <button onClick={handleAutoDrawRoute}>Draw Routes</button>
-              </div>
-            )}
           </div>
+
         </div>
         <div className='time-max'>
-            <input  type="text" name="" id="datetime" placeholder='Time max' />
-            <span>Đặt</span>
+          <input
+            type="text"
+            name="datetime"
+            id="datetime"
+            placeholder='Thời gian tối đa'
+            value={timeLimit}
+            onChange={handleInputChange}
+          />
+          <span onClick={sendDataToBackend}>
+            <img src={directImage} alt="Custom Image" style={{width: '25px'}}/>
+          </span>
         </div>
-
       </div>
     </React.Fragment>
   );

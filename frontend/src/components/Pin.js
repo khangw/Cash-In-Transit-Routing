@@ -13,7 +13,18 @@ function Pin(props) {
   return (
     <div style={{ position: 'relative', display: 'inline-block' }}>
       {name && (
-        <div style={{ position: 'absolute', top: -30, left: -10, backgroundColor: 'white', padding: '2px 5px', borderRadius: '3px', fontSize: '12px', border: '1px solid #ccc' }}>
+        <div style={{
+          position: 'absolute',
+          top: -30, // Adjust top position to control vertical alignment
+          left: '50%', // Center horizontally
+          transform: 'translateX(-50%)', // Center horizontally
+          backgroundColor: 'white',
+          padding: '2px 5px',
+          borderRadius: '3px',
+          fontSize: '12px',
+          border: '1px solid #ccc',
+          whiteSpace: 'nowrap', // Prevent text from wrapping
+        }}>
           {name}
         </div>
       )}

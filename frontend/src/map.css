@@ -35,7 +35,7 @@
 }
 .time-max span{
   padding: 2px;
-  background-color: cadetblue;
+  /* background-color: rgb(72, 72, 72); */
   border-radius: 5px;
   cursor: pointer;
 }
@@ -162,3 +162,21 @@ hr{
   font-size: 11px;
   opacity: 0.6;
 }
+.pin-name {
+  white-space: nowrap;
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+}
+.route-info-box {
+  position: absolute;
+  z-index: 10;
+  background-color: white;
+  padding: 10px;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.route-info-box p {
+  margin: 5px 0;
+}
+
