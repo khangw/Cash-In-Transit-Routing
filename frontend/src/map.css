@@ -8,38 +8,157 @@
     width: 1460px !important
   }   */
 
-.wrapper .wrapper-pin-list{
+/* time-max */
+.time-max{
     display: block;
     position: absolute;
-    width: 300px;
-    height: auto;
-    margin-left: 30px;
+    width: 200px;
+    height: 50px;
+    margin-left: 350px;
+    margin-top: 10px;
     top: 0;
-    bottom: 0;
     left: 0;
     right: 0;
     background-color: whitesmoke;
     border-radius: 5px;
+    box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+.time-max input{
+  max-width: 150px;
+  height: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+.time-max span{
+  padding: 2px;
+  background-color: cadetblue;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
-.pin-list ul {
-    list-style-type: none;
-    padding: 0;
+.wrapper .wrapper-pin-list{
+    display: block;
+    position: absolute;
+    width: 300px;
+    margin-left: 30px;
+    margin-top: 10px;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: whitesmoke;
+    border-radius: 5px;
+    box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+}
+
+.wrapper-pin-list .header-pin{
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+  margin-left: 10px;
+  margin-bottom: 20px;
+}
+hr{
+  opacity: 0.5;
+}
+
+/* danh sach thu gon */
+.expand{
+  display: flex;
+  align-items: center;
+  text-align: center;
+}
+.icon-expand{
+  cursor: pointer;
+  &:hover{
+    color: rgb(255, 153, 0);
   }
-  
-  .pin-list .pin-list-item {
-    padding: 20px;
-    border-bottom: 1px solid #ccc;
+}
+.expand span{
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* VietNam ganday */
+.header-pin span:nth-child(1){
+  font-weight: 600;
+}
+.header-pin span:nth-child(2){
+  font-size: 14px;
+}
+
+/* file upload */
+.wrapper-pin-list .file-upload{
+  margin-left: 10px;
+}
+
+.pin-list{
+  display: flex;
+  flex-direction: column;
+}
+.pin-list .pin-item{
+  display: flex;
+  gap: 5px;
+  width: 100%;
+  margin-bottom: 15px;
+}
+.pin-item .pin-item-left{
+  width: 50%;
+  margin-left: 10px;
+}
+.pin-item-left .top-pin-left{
+  margin-bottom: 15px;
+}
+.pin-item-left .top-pin-left span{
+  font-size: 13px;
+  font-weight: 500;
+}
+.pin-item-left .top-pin-left input{
+  width: 130px;
+  height: 30px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.pin-item-left .bottom-pin-left{
+  display: flex;
+  gap: 10px;
+}
+.pin-item-left .bottom-pin-left .remove{
+  color: brown;
+  cursor: pointer;
+  &:hover{
+    color: goldenrod;
   }
-  
-  .pin-list .pin-list-item:last-child {
-    border-bottom: none; /* Loại bỏ đường viền dưới cho phần tử cuối cùng */
-  }
-  
-  .pin-list .pin-list-item button {
-    float: left; /* Đưa nút delete vào góc phải */
-  }
-  
-  .pin-list .pin-list-item div {
-    text-align: left;
-  }
+}
+.pin-item-left .bottom-pin-left .home{
+  color: green;
+  cursor: pointer;
+}
+.pin-item-left .bottom-pin-left .active{
+  color: rgb(49, 54, 222);
+  cursor: pointer;
+}
+
+.pin-item .pin-item-right{
+  width: calc(50% - 10px);
+}
+.pin-item .pin-item-right div{
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 5px;
+}
+.pin-item .pin-item-right div .icon{
+  font-size: 15px;
+}
+.pin-item .pin-item-right div span{
+  max-width: 100%;
+  font-size: 11px;
+  opacity: 0.6;
+}

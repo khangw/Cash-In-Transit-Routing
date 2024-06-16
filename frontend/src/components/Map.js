@@ -1,5 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import MapGL, { Marker, Source, Layer } from '@goongmaps/goong-map-react';
+import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
+import ExpandLessOutlinedIcon from '@mui/icons-material/ExpandLessOutlined';
+import DeleteForeverOutlinedIcon from '@mui/icons-material/DeleteForeverOutlined';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import Pin from './Pin';
 import '../map.css';
 import Papa from 'papaparse';
@@ -23,6 +28,19 @@ function Map() {
   const [routes, setRoutes] = useState([]);
   const [pins, setPins] = useState([]);
   const [solution, setSolution] = useState(null);
+  const [expand, setExpand] = useState(true) // state đóng mở list
+  const [homeStates, setHomeStates] = useState({}); // state chọn điểm quay về
+
+  const handleHomeClick = (pinId) => {
+    setHomeStates(prevStates => ({
+      ...Object.keys(prevStates).reduce((acc, key) => {
+        acc[key] = false;
+        return acc;
+      }, {}),
+      [pinId]: true
+    }));
+  };
+
 
   const handleMapClick = useCallback(
     (event) => {
@@ -296,29 +314,54 @@ function Map() {
         </div>
 
         <div className='wrapper-pin-list'>
-          <h2 style={{ textAlign: 'center' }}>List Position</h2>
-          <div className="pin-list">
+          <div className='header-pin'>
+            <span>Viet Nam</span>
+            <span>Gần đây</span>
+          </div>
+          <hr />
+
+          <div className='file-upload'>
+            <span>Upload file</span>
             <input type="file" accept=".csv" onChange={handleFileUpload} />
+          </div>
+          <hr />
+
+          {
+            expand
+              ?
+              <div className='expand' onClick={() => setExpand(false)}>
+                <ExpandLessOutlinedIcon className='icon-expand' />
+                <span>Thu gọn</span>
+              </div>
+              :
+              <div className='expand' onClick={() => setExpand(true)}>
+                <ExpandMoreOutlinedIcon className='icon-expand' />
+                <span>Xem danh sách tại đây</span>
+              </div>
+          }
+
+          <div style={{ display: expand ? 'block' : 'none' }} className="pin-list">
             {pins.map((pin, index) => (
-              <div key={pin.id} className="pin-list-item">
-                <div>
-                  <strong>Order:</strong> {index + 1}
+              <div key={pin.id} className="pin-item">
+                <div className="pin-item-left">
+                  <div className="top-pin-left">
+                    <span>Phòng giao dịch số {index + 1}</span>
+                    <input type="text" placeholder='Tên phòng giao dịch' />
+                  </div>
+                  <div className="bottom-pin-left">
+                    <DeleteForeverOutlinedIcon  onClick={() => {handleDeletePin(pin.id)}} className='remove'/>
+                    <HomeOutlinedIcon
+                      onClick={() => handleHomeClick(pin.id)} 
+                      className={`home ${homeStates[pin.id] ? 'active' : ''}`}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <strong>Latitude:</strong> {pin.latitude}
+
+                <div className="pin-item-right">
+                  <div><LocationOnOutlinedIcon className='icon'/> <span>{pin.latitude}</span></div>
+                  <div><LocationOnOutlinedIcon className='icon'/> <span>{pin.longitude}</span></div>
                 </div>
-                <div>
-                  <strong>Longitude:</strong> {pin.longitude}
-                </div>
-                <div>
-                  <strong>Name:</strong>
-                  <input
-                    type="text"
-                    value={pin.name}
-                    onChange={(e) => handleNameChange(pin.id, e.target.value)}
-                  />
-                </div>
-                <button onClick={() => handleDeletePin(pin.id)}>Delete</button>
+                
               </div>
             ))}
             {solution && (
@@ -329,6 +372,10 @@ function Map() {
               </div>
             )}
           </div>
+        </div>
+        <div className='time-max'>
+            <input  type="text" name="" id="datetime" placeholder='Time max' />
+            <span>Đặt</span>
         </div>
 
       </div>
